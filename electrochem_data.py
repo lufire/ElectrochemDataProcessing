@@ -8,16 +8,31 @@ import pandas as pd
 import sys
 
 
-class DTAFile:
+class DataFile:
     """
-    Class to process Gamry DTA-files
+    Abstract base class to process electrochemistry data files
+    """
+    FILE_TYPES = {'DTA': 'DTAFile'}
+
+    def __init__(self, path):
+        return self.factory(path)
+
+    def factory(self, path):
+        file_ext = path.rsplit('.')[1]
+        if file_ext in self.FILE_TYPES:
+            return eval(self.FILE_TYPES[file_ext])(path)
+
+class DTAFile(DataFile):
+    """
+    Subclass of DataFile to process Gamry DTA-files
     """
 
+    FILE_ENDING = 'DTA'
     HEADER_ENDING = 'CURVE'
 
     def __init__(self, path):
         """
-        Initialize GamryDTA object by reading in a the .DTA file and storing
+        Initialize DTAFile object by reading in a the .DTA file and storing
         corresponding members
         """
         self.header, self.data = self.read(path)
@@ -68,5 +83,5 @@ class DTAFile:
         header_dict = {}
         for line in header_list:
             line_list = line.split('\t')
-            header_dict[line_list[0]] = tuple(line_list[1:]
+            header_dict[line_list[0]] = tuple(line_list[1:])
         return header_list, header_dict
