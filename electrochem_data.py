@@ -14,13 +14,14 @@ class DataFile:
     """
     FILE_TYPES = {'DTA': 'DTAFile'}
 
-    def __init__(self, path):
-        return self.factory(path)
-
-    def factory(self, path):
+    def __new__(cls, path):
         file_ext = path.rsplit('.')[1]
-        if file_ext in self.FILE_TYPES:
-            return eval(self.FILE_TYPES[file_ext])(path)
+        if file_ext in cls.FILE_TYPES:
+            return super(DataFile, cls)\
+                .__new__(eval(cls.FILE_TYPES[file_ext]))
+        else:
+            return super(DataFile, cls).__new__(cls, path)
+
 
 class DTAFile(DataFile):
     """

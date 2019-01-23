@@ -34,9 +34,12 @@ class Curve:
             path = os.path.join(dir, name)
             self.data_objects.append(echem_data.DataFile(path))
 
+    def __getitem__(self, key):
+        return self.data_objects[key]
+
     def mean_values(self, variable, points = 0):
         mean_values = []
         if points > 0:
-            for item in self.data_object:
+            for item in self.data_objects:
                 mean_values.append(item.data[-points:].mean()[variable])
         return mean_values
