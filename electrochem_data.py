@@ -7,7 +7,6 @@ import re
 import pandas as pd
 import sys
 
-
 class DataFile:
     """
     Abstract base class to process electrochemistry data files
@@ -22,7 +21,6 @@ class DataFile:
         else:
             return super(DataFile, cls).__new__(cls, path)
 
-
 class DTAFile(DataFile):
     """
     Subclass of DataFile to process Gamry DTA-files
@@ -30,6 +28,13 @@ class DTAFile(DataFile):
 
     FILE_ENDING = 'DTA'
     HEADER_ENDING = 'CURVE'
+    NAMES = {'Voltage': 'Vf',
+             'Current': 'Im',
+             'Power': 'Pwr',
+             'Temperature': 'Temp',
+             'Time': 'T'}
+    DELIMITER = '\t'
+    DECIMAL = ','
 
     def __init__(self, path):
         """
@@ -43,15 +48,14 @@ class DTAFile(DataFile):
         Read in DTA-file and return list of lines
         """
         lines = self.read_as_list(path)
-        header_list, header_dict = self.read_header(lines)
-        header_length = len(header_list)
+        header = self.read_header(lines)
+        header_length = len(header)
         print(header_length)
 
-        data = pd.read_csv(path,
-                           header=[header_length, header_length+1],
-                           delimiter='\t')
+        data = pd.read_csv(path, header=[header_length, header_length+1],
+                           delimiter=self.DELIMITER, decimal=self.DECIMAL)
         data.drop(data.columns[[0, 1]], axis=1, inplace=True)
-        return header_dict, data
+        return header, data
 
     @staticmethod
     def read_as_list(input_file):
@@ -74,7 +78,7 @@ class DTAFile(DataFile):
 
     def read_header(self, lines):
         """
-        Extract header lines from total list of lines of Gamry DTA-file
+        Extract header as dictionary from total list of lines of Gamry DTA-file
         """
         header_list = []
         for line in lines:
@@ -83,6 +87,23 @@ class DTAFile(DataFile):
                 break
         header_dict = {}
         for line in header_list:
-            line_list = line.split('\t')
+            line_list = line.rstrip().split('\t')
             header_dict[line_list[0]] = tuple(line_list[1:])
-        return header_list, header_dict
+        return header_dict
+
+    def __getitem__(self, key):
+        if isinstance(key, (tuple, list)):
+            if all(isinstance(x, int) for x in key):
+                return self.data.iloc[key]
+            if all(isinstance(x, str) for x in key):
+                return self.data[key]
+        elif isinstance(key, (int, slice)):
+            return self.data.iloc[key]
+        elif isinstance(key, str):
+            if key in self.NAMES:
+                name = self.NAMES[key]
+                return self.data[name]
+            return self.data[key]
+        else:
+            raise TypeError('Provided type is accepted for direct indexing')
+
