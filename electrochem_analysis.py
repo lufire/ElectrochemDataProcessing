@@ -67,9 +67,6 @@ class Curve:
 
         #mean_df = pd.concat(mean_values, axis=1).T
         #columns = pd.MultiIndex(levels=[[name], mean_df.columns])
-        #Test
-        #Test2
-        #Test3
         return pd.concat(mean_values, axis=1).T
 
     def plot_means(self, name, x_series, points=0):
