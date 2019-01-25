@@ -3,59 +3,34 @@ Module to process measurement data from a Gamry Instruments potentiostat
 """
 
 # Import required modules
-import re
 import pandas as pd
 import sys
+from abc import ABC, abstractmethod, abstractproperty
 
-class DataFile:
-    """
-    Abstract base class to process electrochemistry data files
-    """
-    FILE_TYPES = {'DTA': 'DTAFile'}
 
-    def __new__(cls, path):
-        file_ext = path.rsplit('.')[1]
-        if file_ext in cls.FILE_TYPES:
+class DataFile(ABC):
+    """
+    Base class to process electrochemistry data files
+    """
+    FILE_TYPES = {'DTA': 'DTAFile',
+                  'Info': 'InfoFile'}
+
+    def __new__(cls, path, file_type):
+        # file_ext = path.rsplit('.')[1]
+        if file_type in cls.FILE_TYPES:
             return super(DataFile, cls)\
-                .__new__(eval(cls.FILE_TYPES[file_ext]))
+                .__new__(eval(cls.FILE_TYPES[file_type]))
         else:
-            return super(DataFile, cls).__new__(cls, path)
+            # return super(DataFile, cls).__new__(cls, path)
+            raise NotImplementedError
 
-class DTAFile(DataFile):
-    """
-    Subclass of DataFile to process Gamry DTA-files
-    """
-
-    FILE_ENDING = 'DTA'
-    HEADER_ENDING = 'CURVE'
-    NAMES = {'Voltage': 'Vf',
-             'Current': 'Im',
-             'Power': 'Pwr',
-             'Temperature': 'Temp',
-             'Time': 'T'}
-    DELIMITER = '\t'
-    DECIMAL = ','
-
-    def __init__(self, path):
+    def __init__(self, path, file_type):
         """
         Initialize DTAFile object by reading in a the .DTA file and storing
         corresponding members
         """
+        self.path = path
         self.header, self.data = self.read(path)
-
-    def read(self, path):
-        """
-        Read in DTA-file and return list of lines
-        """
-        lines = self.read_as_list(path)
-        header = self.read_header(lines)
-        header_length = len(header)
-        print(header_length)
-
-        data = pd.read_csv(path, header=[header_length, header_length+1],
-                           delimiter=self.DELIMITER, decimal=self.DECIMAL)
-        data.drop(data.columns[[0, 1]], axis=1, inplace=True)
-        return header, data
 
     @staticmethod
     def read_as_list(input_file):
@@ -76,20 +51,13 @@ class DTAFile(DataFile):
                             'to file or as tuple or list of content')
         return input_list
 
-    def read_header(self, lines):
+    @abstractmethod
+    def read(self, path):
         """
-        Extract header as dictionary from total list of lines of Gamry DTA-file
+        Return values of concrete implementation in subclasses:
+        header, data
         """
-        header_list = []
-        for line in lines:
-            header_list.append(line)
-            if self.HEADER_ENDING in line:
-                break
-        header_dict = {}
-        for line in header_list:
-            line_list = line.rstrip().split('\t')
-            header_dict[line_list[0]] = tuple(line_list[1:])
-        return header_dict
+        pass
 
     def __getitem__(self, key):
         if isinstance(key, (tuple, list)):
@@ -100,10 +68,90 @@ class DTAFile(DataFile):
         elif isinstance(key, (int, slice)):
             return self.data.iloc[key]
         elif isinstance(key, str):
-            if key in self.NAMES:
-                name = self.NAMES[key]
-                return self.data[name]
             return self.data[key]
         else:
-            raise TypeError('Provided type is accepted for direct indexing')
+            raise TypeError('Type is not accepted for direct indexing')
+
+
+class DTAFile(DataFile):
+    """
+    Subclass of DataFile to process Gamry DTA-files
+    """
+
+    FILE_ENDING = 'DTA'
+    HEADER_ENDING = 'CURVE'
+    NAMES = {'Vf': 'Voltage',
+             'Im': 'Current',
+             'Pwr': 'Power',
+             'Temp': 'Temperature',
+             'T': 'Time'}
+    DELIMITER = '\t'
+    DECIMAL = ','
+
+    def read(self, path):
+        """
+        Read in DTA-file and return list of lines
+        """
+        lines = self.read_as_list(path)
+        header, header_length = self.read_header(lines)
+        data = pd.read_csv(path, header=[header_length, header_length+1],
+                           delimiter=self.DELIMITER, decimal=self.DECIMAL)
+        data.drop(data.columns[[0, 1]], axis=1, inplace=True)
+        data.rename(columns=self.NAMES, inplace=True)
+        return header, data
+
+    def read_header(self, lines):
+        """
+        Extract header as dictionary from total list of lines of data file
+        """
+        header_list = []
+        for line in lines:
+            header_list.append(line)
+            if self.HEADER_ENDING in line:
+                break
+        header_dict = {}
+        for line in header_list:
+            if line.strip() and not line.startswith('#'):
+                line_list = line.rstrip().lstrip().split('\t')
+                header_dict[line_list[0]] = tuple(line_list[1:])
+        return header_dict, len(header_list)
+
+
+class InfoFile(DataFile):
+    """
+    Subclass of DataFile to process custom info files
+    """
+
+    FILE_ENDING = 'txt'
+    HEADER_ENDING = 'CURVE'
+    DELIMITER = '\t'
+    DECIMAL = '.'
+
+    def read(self, path):
+        """
+        Read in DTA-file and return list of lines
+        """
+        lines = self.read_as_list(path)
+        header, header_length = self.read_header(lines)
+        data = pd.read_csv(path, header=[header_length, header_length+1],
+                           delimiter=self.DELIMITER, decimal=self.DECIMAL)
+        return header, data
+
+    def read_header(self, lines):
+        """
+        Extract header as dictionary from total list of lines of data file
+        """
+        header_list = []
+        for line in lines:
+            header_list.append(line)
+            if self.HEADER_ENDING in line:
+                break
+        header_dict = {}
+        for line in header_list:
+            if line.strip() and not line.startswith('#'):
+                line_list = line.rstrip().lstrip().split('\t')
+                header_dict[line_list[0]] = tuple(line_list[1:])
+        return header_dict, len(header_list)
+
+
 

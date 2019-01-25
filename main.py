@@ -3,13 +3,15 @@ Main program file to execute for processing data
 """
 
 # Import required modules
+import os
 import input
 import electrochem_analysis as echem_ana
 
-curve = echem_ana.Curve(input.work_dir)
+work_dir = r"TestData/Gamry"
+data_dir = os.path.join(work_dir, 'Data')
+info_path = os.path.join(work_dir, 'Info.txt')
 
-#print(curve[2].data.head())
+curve = echem_ana.Curve(data_dir, 'DTA', info_path)
 
-print(curve[2].data.mean())
 
 
