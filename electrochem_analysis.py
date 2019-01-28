@@ -5,7 +5,8 @@ Module containing classes for different analysis of the electrochemical data
 # Import required modules
 import os
 import electrochem_data as echem_data
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 import pandas as pd
 import numpy as np
 
@@ -68,24 +69,14 @@ class Curve:
 
     def plot_means(self, x_name, y_name, points=0):
         df = self.mean_values(y_name, points)
-        fig = plt.figure(dpi=150)
-        ax = df.plot(x_name, y_name)
-        plt.tight_layout()
-        plt.legend(fontsize='x-small')
-        #plt.ylim((0, ymax))
-        #plt.yticks(np.arange(0, ymax, step=1))
-        #plt.xlabel('$x$ / mm')
-        #plt.ylabel('$v_y$ / mm/s')
-        #plt.xlim((x_axis_meas[0] * m_to_mm, x_axis_meas[1] * m_to_mm))
-        #plt.ylim((0,0.015))
-        #xticks = np.arange(0, 15.1, 1)
-        #plt.xticks(xticks, minor=False)
-
-        legend = plt.legend(loc='center right', bbox_to_anchor=(1.6, 0.5))
-        legend.get_frame().set_linewidth(0.75)
-        legend.get_frame().set_edgecolor('black')
-        plt.grid('on')
+        ax = df.plot(x_name, y_name, style=['k.-'], markersize=10)
+        x_unit = df[x_name].columns[0]
+        ax.set_xlabel(x_name+' / '+x_unit)
+        y_unit = df[y_name].columns[0]
+        ax.set_ylabel(y_name+' / '+y_unit)
+        legend = plt.legend(loc='best')
+        ax.grid(True)
         plt.savefig(os.path.join(self.dir, 'plot.png'),
                     bbox_inches='tight')
-        return fig
+
 
