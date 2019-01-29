@@ -82,13 +82,10 @@ class Curve:
             mean_df = pd.concat(mean_values, axis=1).T
         key = self.variable.data.keys()[0]
         mean_df[key] = file_names
-        print(mean_df)
-        print(self.variable.data)
         return self.variable.data.merge(mean_df)
 
     def plot_means(self, x_name, y_name, points=0):
         df = self.mean_values(y_name, points)
-        print(df)
         ax = df.plot(x_name, y_name, style=['k.-'], markersize=10)
         x_unit = df[x_name].columns[0]
         ax.set_xlabel(x_name + ' / ' + x_unit)
