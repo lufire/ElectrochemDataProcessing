@@ -1,10 +1,7 @@
+# Variable information
+NAME	Zinc Concentration
+UNIT	vol-%
+BOUNDS	zn	_paa
+
 # Additional information
 ACTIVE AREA	60	cm^2
-# Remaining curve variables
-CURVE	TABLE	4
-File Name	Zinc Concentration
--	vol-%
-PWRPOTSTAT_ps50_zn4_paa1_v08	4.0
-PWRPOTSTAT_ps50_zn8_paa1_v08	8.0
-PWRPOTSTAT_ps50_zn12_paa1_v08	12.0
-PWRPOTSTAT_ps50_zn16_paa1_v08	16.0

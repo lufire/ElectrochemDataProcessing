@@ -3,9 +3,12 @@ Module to process measurement data from a Gamry Instruments potentiostat
 """
 
 # Import required modules
+import os
+import re
 import pandas as pd
 import sys
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
+import numpy as np
 
 
 class DataFile(ABC):
@@ -30,6 +33,8 @@ class DataFile(ABC):
         corresponding members
         """
         self.path = path
+        self.file_name = os.path.split(path)[1]
+        self.variable = None
         self.header, self.data = self.read(path)
 
     @staticmethod
@@ -133,8 +138,10 @@ class InfoFile(DataFile):
         """
         lines = self.read_as_list(path)
         header, header_length = self.read_header(lines)
-        data = pd.read_csv(path, header=[header_length, header_length+1],
-                           delimiter=self.DELIMITER, decimal=self.DECIMAL)
+        #data = pd.read_csv(path, header=[header_length, header_length+1],
+        #                   delimiter=self.DELIMITER, decimal=self.DECIMAL)
+        data = None
+
         return header, data
 
     def read_header(self, lines):
@@ -152,6 +159,33 @@ class InfoFile(DataFile):
                 line_list = line.rstrip().lstrip().split('\t')
                 header_dict[line_list[0]] = tuple(line_list[1:])
         return header_dict, len(header_list)
+
+    def set_vars_from_file_names(self, file_names):
+        """
+        Store variable variation between data file objects associated
+        with the provided file names (file_names). file_names strings should
+        contain the variable value enclosed by the bounds strings
+        """
+        var_name = self.header['NAME'][0]
+        var_unit = self.header['UNIT'][0]
+        bounds = self.header['BOUNDS']
+        var_values = []
+        if isinstance(bounds, (list, tuple)):
+            for name in file_names:
+                result = re.search(bounds[0] + '(.*)' + bounds[1], name)
+                if result:
+                    var_values.append(float(result.group(1)))
+                else:
+                    raise ValueError('Value for variable was not '
+                                     'found in file name')
+        else:
+            raise TypeError('bounds must be provided as tuple or list')
+
+        columns = [['File Name', var_name], ['-', var_unit]]
+        values = [file_names, var_values]
+        values = list(map(list, zip(*values)))
+        self.data = pd.DataFrame(values, columns=columns)
+        self.data.sort_values((var_name, var_unit), inplace=True)
 
 
 
