@@ -1,5 +1,4 @@
 .DS_Store
-TestDate/.DS_Store
 __pycache__/
 .idea/
 electrochem_analysis.pyc
