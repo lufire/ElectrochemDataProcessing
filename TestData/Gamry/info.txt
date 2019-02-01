@@ -1,7 +1,7 @@
 # Variable information
 NAME	Zinc Concentration
-UNIT	vol-%
+UNIT	vol-\%
 BOUNDS	zn	_paa
 
 # Additional information
-ELECTRODE SURFACE AREA	60	cm²
+ELECTRODE SURFACE AREA	60	cm^2

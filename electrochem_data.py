@@ -13,27 +13,15 @@ import numpy as np
 
 class DataFile(ABC):
     """
-    Base class to process electrochemistry data files
+    Base class to process data files
     """
-    FILE_TYPES = {'DTA': 'DTAFile',
-                  'EC-Lab': 'ECLabFile',
-                  'Info': 'InfoFile'}
-
-    def __new__(cls, path, file_type):
-        if file_type in cls.FILE_TYPES:
-            return super(DataFile, cls)\
-                .__new__(eval(cls.FILE_TYPES[file_type]))
-        else:
-            raise NotImplementedError
-
-    def __init__(self, path, file_type):
+    def __init__(self, path):
         """
-        Initialize DTAFile object by reading in a the .DTA file and storing
+        Initialize DataFile object by reading the file and storing
         corresponding members
         """
         self.path = path
         self.file_name = os.path.split(path)[1]
-        self.variable = None
         self.header, self.data = self.read(path)
 
     @staticmethod
@@ -41,13 +29,13 @@ class DataFile(ABC):
         """
         Read in input_file and return list of lines
         """
-        input_list = None
-        if isinstance(input_list, str):
+        if isinstance(input_file, str):
             try:
                 with open(input_file, 'r') as f:
                     input_list = f.readlines()
             except FileNotFoundError:
                 print("File was not found: \n", input_file)
+                sys.exit()
         elif isinstance(input_file, (list, tuple)):
             input_list = input_file
         else:
@@ -77,9 +65,48 @@ class DataFile(ABC):
             raise TypeError('Type is not accepted for direct indexing')
 
 
-class DTAFile(DataFile):
+class EChemDataFile(DataFile, ABC):
     """
-    Subclass of DataFile to process Gamry DTA-files
+    Base class to process electrochemistry data files
+    """
+    FILE_TYPES = {'DTA': 'DTAFile',
+                  'EC-Lab': 'ECLabFile'}
+
+    def __new__(cls, path, file_type):
+        if file_type in cls.FILE_TYPES:
+            return super(EChemDataFile, cls)\
+                .__new__(eval(cls.FILE_TYPES[file_type]))
+        else:
+            raise NotImplementedError
+
+    def __init__(self, path, file_type):
+        """
+        Initialize DTAFile object by reading in a the .DTA file and storing
+        corresponding members
+        """
+        self.variable = None
+        super().__init__(path)
+
+    @abstractmethod
+    def read(self, path):
+        """
+        Return values of concrete implementation in subclasses:
+        header, data
+        """
+        pass
+
+    @abstractmethod
+    def calculate_current_density(self, electrode_area):
+        """
+        Calculate current density based on 'Current' column in data member and
+        provided electrode_area (dictionary with keys: name, value, and unit)
+        """
+        pass
+
+
+class DTAFile(EChemDataFile):
+    """
+    Subclass of EChemDataFile to process Gamry DTA-files
     """
     FILE_ENDING = 'DTA'
     HEADER_ENDING = 'CURVE'
@@ -126,14 +153,14 @@ class DTAFile(DataFile):
         """
         curr_den_unit = self.data['Current'].keys()[0] + '/' \
                         + electrode_area['unit']
-        self.data['Current Density', curr_den_unit] = \
-            self.data['Current'][self.data['Current'].keys()[0]] \
+        curr_den = self.data['Current'][self.data['Current'].keys()[0]] \
             / electrode_area['value']
+        self.data['Current Density', curr_den_unit] = curr_den.abs()
 
 
-class ECLabFile(DataFile):
+class ECLabFile(EChemDataFile):
     """
-    Subclass of DataFile to process EC-Lab ASCII txt-files
+    Subclass of EChemDataFile to process EC-Lab ASCII txt-files
     """
 
     FILE_ENDING = 'txt'
@@ -196,9 +223,9 @@ class ECLabFile(DataFile):
         """
         curr_den_unit = self.data['Current'].keys()[0] + '/' \
                         + electrode_area['unit']
-        self.data['Current Density', curr_den_unit] = \
-            self.data['Current'][self.data['Current'].keys()[0]] \
+        curr_den = self.data['Current'][self.data['Current'].keys()[0]] \
             / electrode_area['value']
+        self.data['Current Density', curr_den_unit] = curr_den.abs()
 
 
 class InfoFile(DataFile):
@@ -255,7 +282,7 @@ class InfoFile(DataFile):
                     var_values.append(float(result.group(1)))
                 else:
                     raise ValueError('Value for variable was not '
-                                     'found in file name')
+                                     'found in file name: ' + name)
         else:
             raise TypeError('bounds must be provided as tuple or list')
 

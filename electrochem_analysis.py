@@ -15,9 +15,10 @@ class Curve:
     """
     Base class to plot data from multiple data file objects
     """
-    def __init__(self, data_dir, file_type, info_path):
-        self.dir = data_dir
-        self.variable = echem_data.DataFile(info_path, 'Info')
+    def __init__(self, data_dir, data_file_type, base_dir):
+        self.data_dir = data_dir
+        self.work_dir = base_dir
+        self.variable = echem_data.InfoFile(os.path.join(base_dir, 'info.txt'))
 
         # Find files in directory
         file_names = os.listdir(data_dir)
@@ -42,7 +43,7 @@ class Curve:
         self.data_objects = []
         for name in self.data_file_names:
             path = os.path.join(data_dir, name)
-            self.data_objects.append(echem_data.DataFile(path, file_type))
+            self.data_objects.append(echem_data.EChemDataFile(path, data_file_type))
 
         # Write variable data into data objects
         var_data = self.variable.data
@@ -97,22 +98,29 @@ class Curve:
 
     def plot_means(self, x_name, y_name, points=0):
         df = self.mean_values(y_name, points)
-        ax = df.plot(x_name, y_name, style=['k.-'], markersize=10)
+        ax = df.plot(x_name, y_name, style=['k.-'], markersize=10, legend=False)
         x_unit = df[x_name].columns[0]
-        ax.set_xlabel(x_name + ' / ' + x_unit)
+        ax.set_xlabel(x_name + ' / $' + x_unit + '$')
         y_unit = df[y_name].columns[0]
-        ax.set_ylabel(y_name + ' / ' + y_unit)
-        ax.legend(loc='best')
+        ax.set_ylabel(y_name + ' / $' + y_unit + '$')
+        ax.set_xticks(df[x_name, x_unit].tolist())
         ax.grid(True)
-        plt.savefig(os.path.join(self.dir, 'plot_mean_values.png'),
-                    bbox_inches='tight')
+        ax.use_sticky_edges = False
+        ax.autoscale()
+        ax.margins(x=0.1, y=0.1)
+        if points == 0:
+            points_name = 'all'
+        else:
+            points_name = str(points)
+        plot_name = ''.join(x_name.split()) + '_' + ''.join(y_name.split()) \
+                    + '_' + points_name + '-points.png'
+        plt.savefig(os.path.join(self.work_dir, plot_name), bbox_inches='tight')
 
-    def plot_series(self, column_name,
-                    start=0, stop=None, step=None):
+    def plot_series(self, column_name, start=0, stop=None, step=None):
         labels = []
         for item in self.data_objects:
-            label = str(item.variable['value']) + ' ' \
-                    + str(item.variable['unit'])
+            label = str(item.variable['value']) + ' $' \
+                    + str(item.variable['unit']) + '$'
             labels.append(label)
         if stop and start >= stop:
             item = self.data_objects[0].data
@@ -128,12 +136,12 @@ class Curve:
                 item = self.data_objects[i].data
                 ax = item.iloc[slicer].plot('Time', column_name, ax=ax)
         x_unit = self.data_objects[0].data['Time'].columns[0]
-        ax.set_xlabel('Time / '+x_unit)
+        ax.set_xlabel('Time / $' + x_unit + '$')
         y_unit = self.data_objects[0].data[column_name].columns[0]
-        ax.set_ylabel(column_name + ' / ' + y_unit)
+        ax.set_ylabel(column_name + ' / $' + y_unit + '$')
         ax.legend(labels, loc='best')
         ax.grid(True)
-        plt.savefig(os.path.join(self.dir, 'plot_time_series.png'),
-                    bbox_inches='tight')
+        plot_name = ''.join(column_name.split()) + '_Time.png'
+        plt.savefig(os.path.join(self.work_dir, plot_name), bbox_inches='tight')
 
 
