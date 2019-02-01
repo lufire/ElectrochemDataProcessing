@@ -4,4 +4,4 @@ UNIT	vol-%
 BOUNDS	zn	_paa
 
 # Additional information
-ACTIVE AREA	60	cm^2
+ELECTRODE SURFACE AREA	60	cm²

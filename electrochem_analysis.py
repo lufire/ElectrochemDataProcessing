@@ -84,6 +84,17 @@ class Curve:
         mean_df[key] = file_names
         return self.variable.data.merge(mean_df)
 
+    def calculate_current_density(self, electrode_area=None):
+        if not electrode_area:
+            electrode_area = {}
+            electrode_area['name'] = 'Electrode Surface Area'
+            electrode_area['value'] = \
+                float(self.variable.header['ELECTRODE SURFACE AREA'][0])
+            electrode_area['unit'] = \
+                str(self.variable.header['ELECTRODE SURFACE AREA'][1])
+        for item in self.data_objects:
+            item.calculate_current_density(electrode_area)
+
     def plot_means(self, x_name, y_name, points=0):
         df = self.mean_values(y_name, points)
         ax = df.plot(x_name, y_name, style=['k.-'], markersize=10)
