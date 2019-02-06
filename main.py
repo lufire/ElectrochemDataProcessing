@@ -9,7 +9,7 @@ import electrochem_analysis as echem_ana
 import electrochem_data as echem_data
 
 
-work_dir = r"TestData\Gamry"
+work_dir = os.path.join('TestData', 'Gamry')
 data_dir = os.path.join(work_dir, 'DataCollection')
 
 curve = echem_ana.Curve(data_dir, 'DTA', work_dir)
