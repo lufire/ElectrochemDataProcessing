@@ -1,5 +1,6 @@
 .DS_Store
 __pycache__/
 .idea/
-electrochem_analysis.pyc
-electrochem_data.pyc
+venv/
+*.pyc
+*.png
