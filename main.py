@@ -9,10 +9,10 @@ import electrochem_analysis as echem_ana
 import electrochem_data as echem_data
 
 
-work_dir = r"TestData\Gamry"
+work_dir = os.path.join('TestData', 'Gamry')
 data_dir = os.path.join(work_dir, 'DataCollection')
 
-curve = echem_ana.Curve(data_dir, 'DTA', work_dir)
+curve = echem_ana.Curve(data_dir, 'DTA', work_dir, read_var=True)
 curve.plot_means('Zinc Concentration', 'Current', points=50)
 curve.plot_series('Current')
 curve.calculate_current_density()

@@ -15,7 +15,7 @@ class Curve:
     """
     Base class to plot data from multiple data file objects
     """
-    def __init__(self, data_dir, data_file_type, base_dir):
+    def __init__(self, data_dir, data_file_type, base_dir, read_var=False):
         self.data_dir = data_dir
         self.work_dir = base_dir
         self.variable = echem_data.InfoFile(os.path.join(base_dir, 'info.txt'))
@@ -37,7 +37,8 @@ class Curve:
                 self.data_file_names.append(name)
 
         # Set variable data frame in variable data object
-        self.variable.set_vars_from_file_names(self.data_file_names)
+        if read_var:
+            self.variable.set_vars_from_file_names(self.data_file_names)
 
         # Create list of data file objects
         self.data_objects = []
