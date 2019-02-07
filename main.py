@@ -18,6 +18,6 @@ curve.plot_series('Current')
 curve.calculate_current_density()
 curve.plot_means('Zinc Concentration', 'Current Density', points=50)
 
-work_dir = r"TestData\Biologic"
+work_dir = os.path.join('TestData', 'Biologic')
 file_dir = os.path.join(work_dir, '1.4571_plasma.txt')
 eclab_data = echem_data.EChemDataFile(file_dir, 'EC-Lab')
