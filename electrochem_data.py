@@ -22,7 +22,7 @@ class DataFile(ABC):
         """
         self.path = path
         self.file_name = os.path.split(path)[1]
-        self.header, self.data = self.read(path)
+        self.header, self.data, self.units = self.read(path)
 
     @staticmethod
     def read_as_list(input_file):
@@ -47,7 +47,7 @@ class DataFile(ABC):
     def read(self, path):
         """
         Return values of concrete implementation in subclasses:
-        header, data
+        header, data, units
         """
         pass
 
@@ -91,7 +91,7 @@ class EChemDataFile(DataFile, ABC):
     def read(self, path):
         """
         Return values of concrete implementation in subclasses:
-        header, data
+        header, data, units
         """
         pass
 
@@ -128,7 +128,14 @@ class DTAFile(EChemDataFile):
                            delimiter=self.DELIMITER, decimal=self.DECIMAL)
         data.drop(data.columns[[0, 1]], axis=1, inplace=True)
         data.rename(columns=self.NAMES, inplace=True)
-        return header, data
+        columns = []
+        for index in data.columns.codes[0]:
+            columns.append(data.columns.levels[0][index])
+        units = {}
+        for index, code in enumerate(data.columns.codes[1]):
+            units[columns[index]] = data.columns.levels[1][code]
+        data.columns = columns
+        return header, data, units
 
     def read_header(self, lines):
         """
@@ -151,11 +158,10 @@ class DTAFile(EChemDataFile):
         Calculate current density based on 'Current' column in data member and
         provided electrode_area (dictionary with keys: name, value, and unit)
         """
-        curr_den_unit = self.data['Current'].keys()[0] + '/' \
-                        + electrode_area['unit']
-        curr_den = self.data['Current'][self.data['Current'].keys()[0]] \
-            / electrode_area['value']
-        self.data['Current Density', curr_den_unit] = curr_den.abs()
+        key = 'Current Density'
+        self.units[key] = self.units['Current'] + '/' + electrode_area['unit']
+        curr_den = self.data['Current'] / electrode_area['value']
+        self.data[key] = curr_den.abs()
 
 
 class ECLabFile(EChemDataFile):
@@ -177,22 +183,20 @@ class ECLabFile(EChemDataFile):
         """
         lines = self.read_as_list(path)
         header, header_length = self.read_header(lines)
-        columns = list(map(str.strip, lines[header_length].split('\t')))
-        column_names = []
-        column_units = []
-        for column in columns:
-            column_list = column.split('/')
-            column_names.append(column_list[0])
-            if len(column_list) > 1:
-                column_units.append(column_list[1])
-            else:
-                column_units.append('-')
-
         data = pd.read_csv(path, header=header_length,
                            delimiter=self.DELIMITER, decimal=self.DECIMAL)
-        data.columns = [column_names, column_units]
+        names = []
+        units = {}
+        for col in data:
+            col_list = col.split('/')
+            names.append(col_list[0])
+            if len(col_list) > 1:
+                units[col_list[0]] = col_list[1]
+            else:
+                units[col_list[0]] = '-'
+        data.columns = names
         data.rename(columns=self.NAMES, inplace=True)
-        return header, data
+        return header, data, units
 
     @staticmethod
     def read_header(lines):
@@ -221,11 +225,10 @@ class ECLabFile(EChemDataFile):
         Calculate current density based on 'Current' column in data member and
         provided electrode_area (dictionary with keys: name, value, and unit)
         """
-        curr_den_unit = self.data['Current'].keys()[0] + '/' \
-                        + electrode_area['unit']
-        curr_den = self.data['Current'][self.data['Current'].keys()[0]] \
-            / electrode_area['value']
-        self.data['Current Density', curr_den_unit] = curr_den.abs()
+        key = 'Current Density'
+        self.units[key] = self.units['Current'] + '/' + electrode_area['unit']
+        curr_den = self.data['Current'] / electrode_area['value']
+        self.data[key] = curr_den.abs()
 
 
 class InfoFile(DataFile):
@@ -247,7 +250,8 @@ class InfoFile(DataFile):
         # data = pd.read_csv(path, header=[header_length, header_length+1],
         #                   delimiter=self.DELIMITER, decimal=self.DECIMAL)
         data = None
-        return header, data
+        units = None
+        return header, data, units
 
     def read_header(self, lines):
         """
@@ -272,7 +276,7 @@ class InfoFile(DataFile):
         contain the variable value enclosed by the bounds strings
         """
         var_name = self.header['NAME'][0]
-        var_unit = self.header['UNIT'][0]
+        self.units = {var_name: self.header['UNIT'][0]}
         bounds = self.header['BOUNDS']
         var_values = []
         if isinstance(bounds, (list, tuple)):
@@ -286,11 +290,11 @@ class InfoFile(DataFile):
         else:
             raise TypeError('bounds must be provided as tuple or list')
 
-        columns = [['File Name', var_name], ['-', var_unit]]
+        columns = ['File Name', var_name]
         values = [file_names, var_values]
         values = list(map(list, zip(*values)))
         self.data = pd.DataFrame(values, columns=columns)
-        self.data.sort_values((var_name, var_unit), inplace=True)
+        self.data.sort_values(var_name, inplace=True)
 
 
 

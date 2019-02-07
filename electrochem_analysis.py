@@ -15,7 +15,7 @@ class Curve:
     """
     Base class to plot data from multiple data file objects
     """
-    def __init__(self, data_dir, data_file_type, base_dir):
+    def __init__(self, data_dir, data_file_type, base_dir, read_var=False):
         self.data_dir = data_dir
         self.work_dir = base_dir
         self.variable = echem_data.InfoFile(os.path.join(base_dir, 'info.txt'))
@@ -37,7 +37,8 @@ class Curve:
                 self.data_file_names.append(name)
 
         # Set variable data frame in variable data object
-        self.variable.set_vars_from_file_names(self.data_file_names)
+        if read_var:
+            self.variable.set_vars_from_file_names(self.data_file_names)
 
         # Create list of data file objects
         self.data_objects = []
@@ -50,12 +51,12 @@ class Curve:
         var_values = []
         for item in self.data_objects:
             item.variable = {}
-            var_name = var_data.columns[1][0]
+            var_name = var_data.columns[1]
             item.variable['name'] = var_name
-            item.variable['unit'] = var_data.columns[1][1]
+            item.variable['unit'] = self.variable.units[var_name]
             file_name = item.file_name
             value = float(var_data.loc[
-                var_data['File Name']['-'] == file_name][var_name].iloc[0][0])
+                var_data['File Name'] == file_name][var_name].iloc[0])
             item.variable['value'] = value
             var_values.append(value)
 
@@ -73,9 +74,8 @@ class Curve:
             for item in self.data_objects:
                 mean_values.append(item[name].iloc[-points:].mean())
                 file_names.append(item.file_name)
-            mean_df = pd.concat(mean_values, axis=1).T
-            mean_df.columns = pd.MultiIndex.from_tuples([(name,
-                                                          mean_df.columns[0])])
+            mean_df = pd.DataFrame(mean_values)
+            mean_df.columns = [name]
         else:
             for item in self.data_objects:
                 mean_values.append(item.data.iloc[-points:].mean())
@@ -97,13 +97,17 @@ class Curve:
             item.calculate_current_density(electrode_area)
 
     def plot_means(self, x_name, y_name, points=0):
-        df = self.mean_values(y_name, points)
-        ax = df.plot(x_name, y_name, style=['k.-'], markersize=10, legend=False)
-        x_unit = df[x_name].columns[0]
+        mean_df = self.mean_values(y_name, points)
+        if x_name in self.variable.units:
+            x_unit = self.variable.units[x_name]
+        else:
+            x_unit = self.data_objects[0].units[x_name]
+        y_unit = self.data_objects[0].units[y_name]
+        ax = mean_df.plot(x_name, y_name, style=['k.-'],
+                          markersize=10, legend=False)
         ax.set_xlabel(x_name + ' / $' + x_unit + '$')
-        y_unit = df[y_name].columns[0]
         ax.set_ylabel(y_name + ' / $' + y_unit + '$')
-        ax.set_xticks(df[x_name, x_unit].tolist())
+        ax.set_xticks(mean_df[x_name].tolist())
         ax.grid(True)
         ax.use_sticky_edges = False
         ax.autoscale()
@@ -135,9 +139,9 @@ class Curve:
             for i in range(1, len(self.data_objects)):
                 item = self.data_objects[i].data
                 ax = item.iloc[slicer].plot('Time', column_name, ax=ax)
-        x_unit = self.data_objects[0].data['Time'].columns[0]
+        x_unit = self.data_objects[0].units['Time']
         ax.set_xlabel('Time / $' + x_unit + '$')
-        y_unit = self.data_objects[0].data[column_name].columns[0]
+        y_unit = self.data_objects[0].units[column_name]
         ax.set_ylabel(column_name + ' / $' + y_unit + '$')
         ax.legend(labels, loc='best')
         ax.grid(True)
