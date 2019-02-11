@@ -25,13 +25,13 @@ class DataFile(ABC):
         self.header, self.data, self.units = self.read(path)
 
     @staticmethod
-    def read_as_list(input_file):
+    def read_as_list(input_file, codec='utf-8'):
         """
         Read in input_file and return list of lines
         """
         if isinstance(input_file, str):
             try:
-                with open(input_file, 'r', encoding='latin-1') as f:
+                with open(input_file, 'r', encoding=codec) as f:
                     input_list = f.readlines()
             except FileNotFoundError:
                 print("File was not found: \n", input_file)
@@ -117,12 +117,13 @@ class DTAFile(EChemDataFile):
              'T': 'Time'}
     DELIMITER = '\t'
     DECIMAL = ','
+    CODEC = 'utf-8'
 
     def read(self, path):
         """
         Read in DTA-file and return list of lines
         """
-        lines = self.read_as_list(path)
+        lines = self.read_as_list(path, self.CODEC)
         header, header_length = self.read_header(lines)
         data = pd.read_csv(path, header=[header_length, header_length+1],
                            delimiter=self.DELIMITER, decimal=self.DECIMAL)
@@ -176,12 +177,13 @@ class ECLabFile(EChemDataFile):
              'time': 'Time'}
     DELIMITER = '\t'
     DECIMAL = ','
+    CODEC = 'latin-1'
 
     def read(self, path):
         """
         Read in EC-Lab-file and return list of lines
         """
-        lines = self.read_as_list(path)
+        lines = self.read_as_list(path, self.CODEC)
         header, header_length = self.read_header(lines)
         data = pd.read_csv(path, header=header_length,
                            delimiter=self.DELIMITER, decimal=self.DECIMAL)
@@ -240,6 +242,7 @@ class InfoFile(DataFile):
     HEADER_ENDING = 'CURVE'
     DELIMITER = '\t'
     DECIMAL = '.'
+    CODEC = 'utf-8'
 
     def read(self, path):
         """
