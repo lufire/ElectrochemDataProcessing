@@ -31,7 +31,7 @@ class DataFile(ABC):
         """
         if isinstance(input_file, str):
             try:
-                with open(input_file, 'r') as f:
+                with open(input_file, 'r', encoding='latin-1') as f:
                     input_list = f.readlines()
             except FileNotFoundError:
                 print("File was not found: \n", input_file)
