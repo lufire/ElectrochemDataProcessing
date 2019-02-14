@@ -1,7 +1,7 @@
 """
 Main program file to execute for processing data
 """
-import electrochem_data as ed
+import src.electrochem_data as ed
 from pathlib import Path
 
 # Read Biologic potentiostat data

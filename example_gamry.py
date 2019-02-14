@@ -1,7 +1,7 @@
 """
 Main program file to execute for processing data
 """
-import electrochem_analysis as ea
+import src.electrochem_analysis as ea
 from pathlib import Path
 
 # Read, time-average and plot multiple test data files from Gamry measurements
