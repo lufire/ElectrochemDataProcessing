@@ -2,6 +2,3 @@
 NAME	Zinc Concentration
 UNIT	vol-\%
 BOUNDS	zn	_paa
-
-# Additional information
-ELECTRODE SURFACE AREA	60	cm^2

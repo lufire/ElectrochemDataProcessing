@@ -8,7 +8,7 @@ import re
 import pandas as pd
 import sys
 from abc import ABC, abstractmethod
-import numpy as np
+from pathlib import Path
 
 
 class DataFile(ABC):
@@ -20,7 +20,7 @@ class DataFile(ABC):
         Initialize DataFile object by reading the file and storing
         corresponding members
         """
-        self.path = path
+        self.path = Path(path)
         self.file_name = os.path.split(path)[1]
         self.header, self.data, self.units = self.read(path)
 
@@ -29,7 +29,7 @@ class DataFile(ABC):
         """
         Read in input_file and return list of lines
         """
-        if isinstance(input_file, str):
+        if isinstance(input_file, (str, Path)):
             try:
                 with open(input_file, 'r', encoding=codec) as f:
                     input_list = f.readlines()
@@ -227,10 +227,15 @@ class ECLabFile(EChemDataFile):
         Calculate current density based on 'Current' column in data member and
         provided electrode_area (dictionary with keys: name, value, and unit)
         """
-        key = 'Current Density'
-        self.units[key] = self.units['Current'] + '/' + electrode_area['unit']
-        curr_den = self.data['Current'] / electrode_area['value']
-        self.data[key] = curr_den.abs()
+        curr_key = 'Current'
+        if curr_key in self.units[curr_key]:
+            key = curr_key + ' Density'
+            self.units[key] = self.units[curr_key] + '/' + electrode_area['unit']
+            curr_den = self.data[curr_key] / electrode_area['value']
+            self.data[key] = curr_den.abs()
+        else:
+            print('Current density could not be calculated, the key "' +
+                  curr_key + '" was not found in the units dictionary')
 
 
 class InfoFile(DataFile):
@@ -243,6 +248,11 @@ class InfoFile(DataFile):
     DELIMITER = '\t'
     DECIMAL = '.'
     CODEC = 'utf-8'
+
+    def __init__(self, path, names=None):
+        super().__init__(path)
+        if isinstance(names, (list, tuple)):
+            self.set_var_from_names(names)
 
     def read(self, path):
         """
@@ -272,10 +282,10 @@ class InfoFile(DataFile):
                 header_dict[line_list[0]] = tuple(line_list[1:])
         return header_dict, len(header_list)
 
-    def set_vars_from_file_names(self, file_names):
+    def set_var_from_names(self, names):
         """
         Store variable variation between data file objects associated
-        with the provided file names (file_names). file_names strings should
+        with the provided names (names). names strings should
         contain the variable value enclosed by the bounds strings
         """
         var_name = self.header['NAME'][0]
@@ -283,7 +293,7 @@ class InfoFile(DataFile):
         bounds = self.header['BOUNDS']
         var_values = []
         if isinstance(bounds, (list, tuple)):
-            for name in file_names:
+            for name in names:
                 result = re.search(bounds[0] + '(.*)' + bounds[1], name)
                 if result:
                     var_values.append(float(result.group(1)))
@@ -294,7 +304,7 @@ class InfoFile(DataFile):
             raise TypeError('bounds must be provided as tuple or list')
 
         columns = ['File Name', var_name]
-        values = [file_names, var_values]
+        values = [names, var_values]
         values = list(map(list, zip(*values)))
         self.data = pd.DataFrame(values, columns=columns)
         self.data.sort_values(var_name, inplace=True)
