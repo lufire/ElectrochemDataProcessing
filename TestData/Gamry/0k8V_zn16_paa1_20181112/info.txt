@@ -1,0 +1,7 @@
+# Variable information
+NAME	Pump Speed
+UNIT	-
+BOUNDS	ps	_zn
+
+# Additional information
+ELECTRODE SURFACE AREA	0.0018	m^2
