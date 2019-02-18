@@ -251,10 +251,8 @@ class InfoFile(DataFile):
 
     def __init__(self, path, names=None):
         super().__init__(path)
-        if isinstance(names, (list, tuple)):
-            self.set_var_from_names(names)
-        else:
-            print("Variable data of InfoFile object has not been assigned")
+        # if isinstance(names, (list, tuple)):
+        #     self.set_var_from_names(names)
 
     def read(self, path):
         """
@@ -305,13 +303,31 @@ class InfoFile(DataFile):
                 if result:
                     var_values.append(float(result.group(1)))
                 else:
-                    raise ValueError('Value for variable was not '
-                                     'found in file name: ' + name)
+                    raise ValueError('Value for variable ' + var_name + ' was '
+                                     'not found in file name: ' + name)
         else:
             raise TypeError('bounds must be provided as tuple or list')
 
         columns = ['File Name', var_name]
         values = [names, var_values]
+        values = list(map(list, zip(*values)))
+        self.data = pd.DataFrame(values, columns=columns)
+        self.data.sort_values(var_name, inplace=True)
+
+    def set_var_from_internal_data(self, var_name, data_objects):
+        """
+        Store variable variation between data file objects associated
+        with the provided names (names). names strings should
+        contain the variable value enclosed by the bounds strings
+        """
+        self.units = {var_name: data_objects[0].units[var_name]}
+        var_values = []
+        file_names = []
+        for obj in data_objects:
+            file_names.append(obj.file_name)
+            var_values.append(obj.data[var_name].mean())
+        columns = ['File Name', var_name]
+        values = [file_names, var_values]
         values = list(map(list, zip(*values)))
         self.data = pd.DataFrame(values, columns=columns)
         self.data.sort_values(var_name, inplace=True)

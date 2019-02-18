@@ -10,6 +10,6 @@ curve = ea.Curve(work_dir/'0k8V_zn8_paa1_20181112', 'DTA')
 curve.plot_means('Pump Speed', 'Current', points=50, save_file=True)
 curve.plot_series('Current')
 curve.plot_means('Pump Speed', 'Current Density', points=50, save_file=True)
-multi_curve = ea.MultiCurve(work_dir, 'DTA')
-multi_curve.plot_means('Pump Speed', 'Current Density',
+multi_curve = ea.MultiCurve(work_dir, 'DTA', var_name='Current Density')
+multi_curve.plot_means('Current Density', 'Voltage',
                        points=50, save_file=True)
