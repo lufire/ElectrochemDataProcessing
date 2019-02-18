@@ -244,7 +244,7 @@ class InfoFile(DataFile):
     """
 
     FILE_ENDING = 'txt'
-    HEADER_ENDING = 'CURVE'
+    HEADER_ENDING = 'TABLE'
     DELIMITER = '\t'
     DECIMAL = '.'
     CODEC = 'utf-8'
@@ -253,6 +253,8 @@ class InfoFile(DataFile):
         super().__init__(path)
         if isinstance(names, (list, tuple)):
             self.set_var_from_names(names)
+        else:
+            print("Variable data of InfoFile object has not been assigned")
 
     def read(self, path):
         """
@@ -260,9 +262,14 @@ class InfoFile(DataFile):
         """
         lines = self.read_as_list(path)
         header, header_length = self.read_header(lines)
-        # data = pd.read_csv(path, header=[header_length, header_length+1],
-        #                   delimiter=self.DELIMITER, decimal=self.DECIMAL)
-        data = None
+        try:
+            data = pd.read_csv(path, delimiter=self.DELIMITER,
+                               decimal=self.DECIMAL)
+        except Exception:
+            data = None
+        else:
+            print('Table was read from ' + path)
+
         units = None
         return header, data, units
 
