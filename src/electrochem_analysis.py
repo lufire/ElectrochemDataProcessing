@@ -16,14 +16,15 @@ class Curve(ABC):
     Abstract base class to plot data from multiple data file objects
     """
 
-    def __new__(cls, base_dir, data_file_type,
-                var_name=None, data_folder='Data'):
-        if var_name:
+    def __new__(cls, base_dir, data_file_type, curve_variable=None,
+                data_folder='Data', **kwargs):
+        if curve_variable:
             return super(Curve, cls).__new__(IntVariableCurve)
         else:
             return super(Curve, cls).__new__(ExtVariableCurve)
 
-    def __init__(self, base_dir, data_file_type, data_folder='Data'):
+    def __init__(self, base_dir, data_file_type, curve_variable=None,
+                 data_folder='Data', **kwargs):
         self.data_folder = data_folder
         self.data_dir = os.path.join(base_dir, self.data_folder)
         self.work_dir = base_dir
@@ -50,38 +51,31 @@ class Curve(ABC):
             path = os.path.join(self.data_dir, name)
             self.data_objects.append(ea.EChemDataFile(path,
                                                       data_file_type))
-
-        # Create info file object
-        self.variable = ea.InfoFile(os.path.join(base_dir, 'info.txt'),
-                                    names=self.data_file_names)
-
+        if 'info_file' in kwargs:
+            self.variable = ea.InfoFile(kwargs['info_file'])
+        else:
+            self.variable = ea.InfoFile(os.path.join(base_dir, 'info.txt'))
         # Initialize current density column in the DataFile objects
         self.calculate_current_density()
 
     def __getitem__(self, key):
         return self.data_objects[key]
 
+    @abstractmethod
     def mean_values(self, points=0):
         mean_values = []
         file_names = []
-        # if name:
-        #     for item in self.data_objects:
-        #         mean_values.append(item[name].iloc[-points:].mean())
-        #         file_names.append(item.file_name)
-        #     mean_df = pd.DataFrame(mean_values)
-        #     mean_df.columns = [name]
-        # else:
         for item in self.data_objects:
             mean_values.append(item.data.iloc[-points:].mean())
             file_names.append(item.file_name)
         mean_df = pd.concat(mean_values, axis=1).T
         key = self.variable.data.keys()[0]
         mean_df[key] = file_names
-        return self.variable.data.merge(mean_df)
+        return mean_df
 
     def calculate_current_density(self, electrode_area=None):
         if not electrode_area:
-            electrode_area = {}
+            electrode_area = dict()
             electrode_area['name'] = 'Electrode Surface Area'
             key = 'ELECTRODE SURFACE AREA'
             if key in self.variable.header:
@@ -99,7 +93,7 @@ class Curve(ABC):
             item.calculate_current_density(electrode_area)
 
     def plot_means(self, x_name, y_name, ax=None,
-                   points=0, label=None, save_file=False):
+                   points=0, label=None, limits=None, save_file=False):
         mean_df = self.mean_values(points)
         if x_name in self.variable.units:
             x_unit = self.variable.units[x_name]
@@ -110,6 +104,9 @@ class Curve(ABC):
         ax.set_xlabel(x_name + ' / $' + x_unit + '$')
         ax.set_ylabel(y_name + ' / $' + y_unit + '$')
         ax.set_xticks(mean_df[x_name].tolist())
+        if isinstance(limits, (list, tuple)):
+            ax.set_xlim(limits[0])
+            ax.set_ylim(limits[1])
         ax.grid(True)
         ax.use_sticky_edges = False
         ax.autoscale()
@@ -182,14 +179,17 @@ class IntVariableCurve(Curve):
     internal variable within the data objects
     """
 
-    def __init__(self, base_dir, data_file_type,
-                 var_name, data_folder='Data'):
-        super().__init__(base_dir, data_file_type, data_folder)
+    def __init__(self, base_dir, data_file_type, curve_variable,
+                 data_folder='Data', **kwargs):
+        super().__init__(base_dir, data_file_type, curve_variable, data_folder)
 
-        self.variable.set_var_from_internal_data(var_name, self.data_objects)
-
+        self.variable.set_var_from_internal_data(curve_variable,
+                                                 self.data_objects)
         # Write variable data into data objects
         self.add_variable_to_objects()
+
+    def mean_values(self, points=0):
+        return super().mean_values(points)
 
 
 class ExtVariableCurve(Curve):
@@ -197,22 +197,33 @@ class ExtVariableCurve(Curve):
     Class to plot data from multiple data file objects varying by an additional
     variable provided in the file names
     """
-    def __init__(self, base_dir, data_file_type, var_name=None,
-        data_folder='Data'):
-        super().__init__(base_dir, data_file_type, data_folder)
+    def __init__(self, base_dir, data_file_type, curve_variable=None,
+                 data_folder='Data', **kwargs):
+        super().__init__(base_dir, data_file_type, curve_variable, data_folder)
 
         self.variable.set_var_from_names(names=self.data_file_names)
-
         # Write variable data into data objects
         self.add_variable_to_objects()
 
+    def mean_values(self, points=0):
+        return self.variable.data.merge(super().mean_values(points))
 
-class MultiCurve:
+
+class MultiCurve(ABC):
     """
     Class to combine and plot data from multiple single Curve objects
     """
-    def __init__(self, base_dir, data_file_type, data_folder='Data',
-                 dir_list=None, var_name=None):
+    def __new__(cls, base_dir, data_file_type, multi_variable=None,
+                curve_variable=None, dir_list=None,
+                data_folder='Data', **kwargs):
+        if multi_variable:
+            return super(MultiCurve, cls).__new__(IntVariableMultiCurve)
+        else:
+            return super(MultiCurve, cls).__new__(ExtVariableMultiCurve)
+
+    def __init__(self, base_dir, data_file_type, multi_variable=None,
+                 curve_variable=None, dir_list=None,
+                 data_folder='Data', **kwargs):
         if dir_list:
             folder_list = [os.path.basename(os.path.normpath(name))
                            for name in dir_list]
@@ -227,15 +238,14 @@ class MultiCurve:
 
         # Create list of single curve objects
         self.curves = [Curve(data_dir, data_file_type,
-                             var_name, data_folder)
+                             curve_variable, data_folder)
                        for data_dir in dir_list]
-        file_names_list = [curve.data_file_names for curve in self.curves]
-        self.data_file_names = [item for sublist in file_names_list
-                                for item in sublist]
         # Create variable object describing variation between Curve objects
-        self.variable = ea.InfoFile(os.path.join(base_dir, 'info.txt'),
-                                    names=self.data_file_names)
-        self.variable.set_var_from_names(names=self.data_file_names)
+        if 'info_file' in kwargs:
+            print('info file')
+            self.variable = ea.InfoFile(kwargs['info_file'])
+        else:
+            self.variable = ea.InfoFile(os.path.join(base_dir, 'info.txt'))
 
     def __getitem__(self, key):
         return self.curves[key]
@@ -253,8 +263,7 @@ class MultiCurve:
     #     return ax
 
     def plot_means(self, x_name, y_name, ax=None,
-                   points=0, save_file=False):
-
+                   points=0, limits=None, save_file=False):
         if x_name in self.variable.units:
             x_unit = self.variable.units[x_name]
         elif x_name in self.curves[0].variable.units:
@@ -270,7 +279,7 @@ class MultiCurve:
             y_unit = self.curves[0].data_objects[0].units[y_name]
 
         total_mean_df = self.mean_values(points)
-        var_name = self.variable.header['NAME'][0]
+        var_name = self.variable.variable_name
         var_unit = self.variable.units[var_name]
         label_values = total_mean_df[var_name].unique()
         unit_label = ' $' + var_unit + '$'
@@ -285,11 +294,14 @@ class MultiCurve:
 
         ax.set_xlabel(x_name + ' / $' + x_unit + '$')
         ax.set_ylabel(y_name + ' / $' + y_unit + '$')
-        #ax.set_xticks(mean_dfs[0][x_name].tolist())
         ax.grid(True)
         ax.use_sticky_edges = False
         ax.autoscale()
-        ax.margins(x=0.1, y=0.1)
+        if isinstance(limits, (list, tuple)):
+            ax.set_xlim(limits[0])
+            ax.set_ylim(limits[1])
+        else:
+            ax.margins(x=0.1, y=0.1)
         ax.legend(labels)
         if save_file:
             if points == 0:
@@ -303,7 +315,47 @@ class MultiCurve:
                         bbox_inches='tight')
         return ax
 
+    @abstractmethod
     def mean_values(self, points=0):
         mean_df = pd.concat([curve.mean_values(points)
                              for curve in self.curves])
-        return self.variable.data.merge(mean_df)
+        return mean_df
+
+
+class IntVariableMultiCurve(MultiCurve):
+    """
+    Class to combine and plot data from multiple single Curve objects
+    using an internal variable from the curves data
+    """
+    def __init__(self, base_dir, data_file_type, multi_variable,
+                 curve_variable=None, dir_list=None,
+                 data_folder='Data', **kwargs):
+        super().__init__(base_dir, data_file_type, multi_variable,
+                         curve_variable, dir_list, data_folder, **kwargs)
+        data_objects = [do for data_objects in self.curves
+                        for do in data_objects]
+        self.variable.set_var_from_internal_data(multi_variable, data_objects)
+
+    def mean_values(self, points=0):
+        return super().mean_values(points)
+
+
+class ExtVariableMultiCurve(MultiCurve):
+    """
+    Class to combine and plot data from multiple single Curve objects
+    using an internal variable from the curves data
+    """
+    def __init__(self, base_dir, data_file_type, multi_variable=None,
+                 curve_variable=None, dir_list=None,
+                 data_folder='Data', **kwargs):
+        super().__init__(base_dir, data_file_type, multi_variable,
+                         curve_variable, dir_list, data_folder, **kwargs)
+        file_names_list = [curve.data_file_names for curve in self.curves]
+        data_file_names = [item for sublist in file_names_list
+                           for item in sublist]
+        self.variable.set_var_from_names(names=data_file_names)
+
+    def mean_values(self, points=0):
+        mean_df = self.variable.data.merge(super().mean_values(points))
+        return mean_df
+

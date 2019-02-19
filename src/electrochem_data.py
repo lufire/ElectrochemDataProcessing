@@ -249,8 +249,9 @@ class InfoFile(DataFile):
     DECIMAL = '.'
     CODEC = 'utf-8'
 
-    def __init__(self, path, names=None):
+    def __init__(self, path):
         super().__init__(path)
+        self.variable_name = None
         # if isinstance(names, (list, tuple)):
         #     self.set_var_from_names(names)
 
@@ -294,6 +295,7 @@ class InfoFile(DataFile):
         contain the variable value enclosed by the bounds strings
         """
         var_name = self.header['NAME'][0]
+        self.variable_name = var_name
         self.units = {var_name: self.header['UNIT'][0]}
         bounds = self.header['BOUNDS']
         var_values = []
@@ -320,6 +322,7 @@ class InfoFile(DataFile):
         with the provided names (names). names strings should
         contain the variable value enclosed by the bounds strings
         """
+        self.variable_name = var_name
         self.units = {var_name: data_objects[0].units[var_name]}
         var_values = []
         file_names = []
