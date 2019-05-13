@@ -1,4 +1,0 @@
-# Variable information
-NAME	Zinc Concentration
-UNIT	vol-\%
-BOUNDS	zn	_paa

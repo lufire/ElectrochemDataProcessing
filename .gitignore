@@ -5,3 +5,4 @@ venv/
 *.pyc
 *.png
 *.xlsx
+Thumbs.db
