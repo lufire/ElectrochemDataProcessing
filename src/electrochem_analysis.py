@@ -307,14 +307,15 @@ class MultiCurve(ABC):
         colors = \
             kwargs.get('color', list(islice(cycle(['k', 'b', 'r', 'g', 'y']),
                                             len(mean_dfs))))
-
-        linestyles = kwargs.get('linestyle', '-')
+        linestyles = \
+            list(islice(cycle(kwargs.get('linestyle', ['-'])), len(mean_dfs)))
+        markers = \
+            list(islice(cycle(kwargs.get('marker', ['.'])), len(mean_dfs)))
+        fillstyles = \
+            list(islice(cycle(kwargs.get('fillstyle', ['full'])),
+                        len(mean_dfs)))
         if len(mean_dfs) > 0:
             for i, df in enumerate(mean_dfs):
-                try:
-                    linestyle = linestyles[i]
-                except (TypeError, IndexError) as e:
-                    linestyle = linestyles
                 xname_scaled = x_name
                 yname_scaled = y_name
                 if 'xmultiplier' in kwargs:
@@ -324,10 +325,11 @@ class MultiCurve(ABC):
                     yname_scaled = y_name + ' Scaled'
                     df[yname_scaled] = df[y_name]*kwargs['ymultiplier']
                 ax = df.plot(xname_scaled, yname_scaled, ax=ax,
-                             marker=kwargs.get('marker', 'o'),
+                             marker=markers[i],
                              markersize=kwargs.get('markersize', 5.0),
+                             fillstyle=fillstyles[i],
                              linewidth=kwargs.get('linewidth', 1.0),
-                             linestyle=linestyle,
+                             linestyle=linestyles[i],
                              color=colors[i],  legend=False)
         else:
             raise ValueError("No data points found")
