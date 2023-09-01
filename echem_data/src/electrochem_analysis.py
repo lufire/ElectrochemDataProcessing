@@ -4,7 +4,7 @@ Module containing classes for different analysis of the electrochemical data
 
 # Import required modules
 import os
-import src.electrochem_data as ea
+import echem_data.src.electrochem_data as ea
 import matplotlib.pyplot as plt
 import pandas as pd
 from itertools import cycle, islice
