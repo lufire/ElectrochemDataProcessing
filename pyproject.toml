@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "echem-data"
+version = "0.0.1"
+authors = [
+  { name="Lukas Feierabend", email="l.feierabend@zbt.de" },
+]
+description = "Electrochemistry Data Processing"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/ZBT-Tools/ElectrochemDataProcessing"
+"Bug Tracker" = "https://github.com/ZBT-Tools/ElectrochemDataProcessing/issues"
