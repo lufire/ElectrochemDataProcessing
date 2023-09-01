@@ -1,11 +1,11 @@
 """
 Main program file to execute for processing data
 """
-import src.electrochem_analysis as ea
+import echem_data.src.electrochem_analysis as ea
 from pathlib import Path
 
 # Read, time-average and plot multiple test data files from Gamry measurements
-work_dir = Path('TestData/Gamry')
+work_dir = Path('../TestData/Gamry')
 curve = ea.Curve(work_dir/'0k8V_zn8_paa1_20181112', 'DTA')
 curve.plot_means('Pump Speed', 'Current', points=50, save_file=True)
 curve.plot_series('Current')
