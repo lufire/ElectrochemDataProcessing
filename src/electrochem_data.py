@@ -70,7 +70,8 @@ class EChemDataFile(DataFile, ABC):
     Base class to process electrochemistry data files
     """
     FILE_TYPES = {'DTA': 'DTAFile',
-                  'EC-Lab': 'ECLabFile'}
+                  'EC-Lab': 'ECLabFile',
+                  'Greenlight': 'GreenlightFile'}
 
     def __new__(cls, path, file_type):
         if file_type in cls.FILE_TYPES:
@@ -316,5 +317,66 @@ class InfoFile(DataFile):
         self.data = pd.DataFrame(values, columns=columns)
         self.data.sort_values(var_name, inplace=True)
 
+
+class GreenlightFile(EChemDataFile):
+    """
+    Subclass of EChemDataFile to process EC-Lab ASCII txt-files
+    """
+
+    FILE_ENDING = 'csv'
+    HEADER_LENGTH = 13
+    NAMES = {}
+    DELIMITER = ','
+    DECIMAL = '.'
+    CODEC = 'latin-1'
+
+    def read(self, path):
+        """
+        Read in DTA-file and return list of lines
+        """
+        lines = self.read_as_list(path, self.CODEC)
+        header, header_length = self.read_header(lines)
+        data = pd.read_csv(path, header=[16, 17],
+                           delimiter=self.DELIMITER, decimal=self.DECIMAL,
+                           # skiprows=[13, 14],
+                           encoding='mbcs')
+        header['File Mark'] = data.iloc[0, 2]
+        data.drop(data.columns[[2]], axis=1, inplace=True)
+        data.rename(columns=self.NAMES, inplace=True)
+        columns = []
+        for index in data.columns.codes[1]:
+            columns.append(data.columns.levels[1][index])
+        units = {}
+        for index, code in enumerate(data.columns.codes[0]):
+            units[columns[index]] = data.columns.levels[0][code]
+        data.columns = columns
+        return header, data, units
+
+    def read_header(self, lines):
+        """
+        Extract header as dictionary from total list of lines of data file
+        """
+        header_list = lines[:self.HEADER_LENGTH]
+        header_dict = {}
+        for line in header_list:
+            if line and not line.startswith('#'):
+                line_list = line.split(',')
+                header_dict[line_list[0]] = tuple(line_list[1:])[0]
+        return header_dict, len(header_list)
+
+    def calculate_current_density(self, electrode_area):
+        """
+        Calculate current density based on 'Current' column in data member and
+        provided electrode_area (dictionary with keys: name, value, and unit)
+        """
+        curr_key = 'Current'
+        if curr_key in self.units[curr_key]:
+            key = curr_key + ' Density'
+            self.units[key] = self.units[curr_key] + '/' + electrode_area['unit']
+            curr_den = self.data[curr_key] / electrode_area['value']
+            self.data[key] = curr_den.abs()
+        else:
+            print('Current density could not be calculated, the key "' +
+                  curr_key + '" was not found in the units dictionary')
 
 
