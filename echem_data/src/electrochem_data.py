@@ -339,7 +339,7 @@ class GreenlightFile(EChemDataFile):
         data = pd.read_csv(path, header=[16, 17],
                            delimiter=self.DELIMITER, decimal=self.DECIMAL,
                            # skiprows=[13, 14],
-                           encoding='mbcs')
+                           encoding=self.CODEC)
         header['File Mark'] = data.iloc[0, 2]
         data.drop(data.columns[[2]], axis=1, inplace=True)
         data.rename(columns=self.NAMES, inplace=True)
