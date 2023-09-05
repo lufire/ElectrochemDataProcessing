@@ -1,0 +1,27 @@
+Metadata-Version: 2.1
+Name: echem-data
+Version: 0.0.1
+Summary: Electrochemistry Data Processing
+Author-email: Lukas Feierabend <l.feierabend@zbt.de>
+Project-URL: Homepage, https://github.com/ZBT-Tools/ElectrochemDataProcessing
+Project-URL: Bug Tracker, https://github.com/ZBT-Tools/ElectrochemDataProcessing/issues
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+
+# ElectrochemDataProcessing
+Library to read and process data files from different electrochemical measurement devices 
+
+# Requirements
+- Python 3.6 or higher
+- Pandas
+- Matplotlib
+
+# Example
+- Download repository
+- run main.py, 
+
+So far, this example
+- reads test data from TestData/Gamry/DataCollection
+- and plots the time-averaged measurement data to TestData/Gamry/DataCollection/plot.png
